@@ -120,7 +120,7 @@ func getUserStatisticsHandler(c echo.Context) error {
 	// 		Score:    score,
 	// 	})
 	// }
-	q := "SELECT u.id, ls.id, COUNT(r.id) + IFNULL(SUM(lc.tip),0) AS score FROM users AS u INNER JOIN livestreams AS ls ON ls.user_id = u.id INNER JOIN reactions AS r ON ls.id = r.livestream_id LEFT JOIN livecomments AS lc ON ls.id = lc.livestream_id GROUP BY (u.id) ORDER BY u.id ASC"
+	q := "SELECT u.id, COUNT(r.id) + IFNULL(SUM(lc.tip),0) AS score FROM users AS u INNER JOIN livestreams AS ls ON ls.user_id = u.id INNER JOIN reactions AS r ON ls.id = r.livestream_id LEFT JOIN livecomments AS lc ON ls.id = lc.livestream_id GROUP BY (u.id) ORDER BY u.id ASC"
 	err = tx.SelectContext(ctx, &ranking, q)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get ranking: "+err.Error())
