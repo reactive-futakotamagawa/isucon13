@@ -299,6 +299,18 @@ func cacheThemeGet(_ context.Context, id int64) (*ThemeModel, error) {
 	return &theme, nil
 }
 
+// SELECT * FROM `livestream_tags` WHERE `livestream_id` = N
+var cacheLivestreamTags *sc.Cache[int64, []*LivestreamTagModel]
+
+func cacheLivestreamTagsGet(_ context.Context, id int64) ([]*LivestreamTagModel, error) {
+	var livestreamTags []*LivestreamTagModel
+	err := dbSelect(&livestreamTags, "SELECT * FROM livestream_tags WHERE livestream_id = ?", id)
+	if err != nil {
+		return nil, err
+	}
+	return livestreamTags, nil
+}
+
 func main() {
 	go standalone.Integrate(":8888")
 
@@ -307,6 +319,7 @@ func main() {
 	tagsCache = sc.NewMust[struct{}, []*TagModel](getTags, time.Minute, time.Minute, sc.With2QBackend(1))
 	cacheUser = sc.NewMust[int64, *UserModel](cacheUserGet, time.Minute, time.Minute)
 	cacheTheme = sc.NewMust[int64, *ThemeModel](cacheThemeGet, time.Minute, time.Minute)
+	cacheLivestreamTags = sc.NewMust[int64, []*LivestreamTagModel](cacheLivestreamTagsGet, time.Minute, time.Minute)
 
 	e := echo.New()
 	// e.Debug = true
