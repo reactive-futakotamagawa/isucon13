@@ -4,6 +4,7 @@ package main
 // sqlx的な参考: https://jmoiron.github.io/sqlx/
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"fmt"
@@ -199,8 +200,36 @@ func connectDB(logger echo.Logger) (*sqlx.DB, error) {
 }
 
 func initializeHandler(c echo.Context) error {
+	if os.Getenv("SERVER_ID") == "3" {
+		fmt.Println("Cache Purged")
+		cacheUser.Purge()
 
-	cacheUser.Purge()
+		return c.JSONBlob(http.StatusOK, jsonEncode(InitializeResponse{
+			Language: "golang",
+		}))
+	}
+
+	reciver_err := make(chan error)
+	go func() {
+		fmt.Println("Initialize Requested to s3")
+		defer close(reciver_err)
+		req, err := http.NewRequest(http.MethodPost, "http://192.168.0.12/api/initialize", bytes.NewBuffer([]byte{}))
+		if err != nil {
+			reciver_err <- err
+			return
+		}
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			reciver_err <- err
+			return
+		}
+		defer res.Body.Close()
+
+		if res.StatusCode != http.StatusOK {
+			reciver_err <- fmt.Errorf("Initialize returned error: status code %v", res.StatusCode)
+			return
+		}
+	}()
 
 	go func() {
 		if _, err := http.Get("http://p.isucon.ikura-hamu.work/api/group/collect"); err != nil {
