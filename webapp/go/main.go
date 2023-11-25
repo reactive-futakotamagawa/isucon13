@@ -271,11 +271,32 @@ func main() {
 	}
 	powerDNSSubdomainAddress = subdomainAddr
 
-	// HTTPサーバ起動
-	listenAddr := net.JoinHostPort("", strconv.Itoa(listenPort))
-	if err := e.Start(listenAddr); err != nil {
-		e.Logger.Errorf("failed to start HTTP server: %v", err)
-		os.Exit(1)
+	if os.Getenv("USE_SOCKET") == "1" {
+		// ここからソケット接続設定 ---
+		socket_file := "/tmp/app.sock"
+		os.Remove(socket_file)
+
+		l, err := net.Listen("unix", socket_file)
+		if err != nil {
+			e.Logger.Fatal(err)
+		}
+
+		// go runユーザとnginxのユーザ（グループ）を同じにすれば777じゃなくてok
+		err = os.Chmod(socket_file, 0777)
+		if err != nil {
+			e.Logger.Fatal(err)
+		}
+
+		e.Listener = l
+		e.Logger.Fatal(e.Start(""))
+		// ここまで ---
+	} else {
+		// HTTPサーバ起動
+		listenAddr := net.JoinHostPort("", strconv.Itoa(listenPort))
+		if err := e.Start(listenAddr); err != nil {
+			e.Logger.Errorf("failed to start HTTP server: %v", err)
+			os.Exit(1)
+		}
 	}
 }
 
