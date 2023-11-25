@@ -429,12 +429,16 @@ func fillUserResponse(ctx context.Context, tx *sqlx.Tx, userModel UserModel) (Us
 		}
 	}
 
-	var iconHash [32]byte
+	// var iconHash [32]byte
+	var iconHashRes string
 	if userModel.IconHash == nil || len(*userModel.IconHash) == 0 {
 		iconHash := sha256.Sum256(image)
 		if _, err := tx.ExecContext(ctx, "UPDATE users SET icon_hash = ? WHERE id = ?", fmt.Sprintf("%x", iconHash), userModel.ID); err != nil {
 			return User{}, err
 		}
+		iconHashRes = fmt.Sprintf("%x", iconHash)
+	} else {
+		iconHashRes = fmt.Sprintf("%x", *userModel.IconHash)
 	}
 	// iconHash := sha256.Sum256(image)
 
@@ -447,7 +451,7 @@ func fillUserResponse(ctx context.Context, tx *sqlx.Tx, userModel UserModel) (Us
 			ID:       themeModel.ID,
 			DarkMode: themeModel.DarkMode,
 		},
-		IconHash: fmt.Sprintf("%x", iconHash),
+		IconHash: iconHashRes,
 	}
 
 	return user, nil
