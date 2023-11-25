@@ -276,12 +276,24 @@ func jsonEncode(res any) []byte {
 	return b
 }
 
+var cacheUser *sc.Cache[int64, *UserModel]
+
+func cacheUserGet(_ context.Context, id int64) (*UserModel, error) {
+	var user UserModel
+	err := dbGet(&user, "SELECT * FROM users WHERE id = ?", id)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 func main() {
 	go standalone.Integrate(":8888")
 
 	tagCacheByID = sc.NewMust[int64, *TagModel](getTagByID, time.Minute, time.Minute, sc.With2QBackend(150))
 	tagCacheByName = sc.NewMust[string, *TagModel](getTagByName, time.Minute, time.Minute, sc.With2QBackend(150))
 	tagsCache = sc.NewMust[struct{}, []*TagModel](getTags, time.Minute, time.Minute, sc.With2QBackend(1))
+	cacheUser = sc.NewMust[int64, *UserModel](cacheUserGet, time.Minute, time.Minute)
 
 	e := echo.New()
 	// e.Debug = true
