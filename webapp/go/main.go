@@ -48,6 +48,67 @@ type InitializeResponse struct {
 	Language string `json:"language"`
 }
 
+func stmtClose(stmt *sqlx.Stmt) {
+	_ = stmt.Close()
+}
+
+var stmtCache = sc.NewMust(func(ctx context.Context, query string) (*sqlx.Stmt, error) {
+	stmt, err := dbConn.PreparexContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	runtime.SetFinalizer(stmt, stmtClose)
+	return stmt, nil
+}, 90*time.Second, 90*time.Second)
+
+func dbExec(query string, args ...any) (sql.Result, error) {
+	stmt, err := stmtCache.Get(context.Background(), query)
+	if err != nil {
+		return nil, err
+	}
+	return stmt.Exec(args...)
+}
+
+func dbGet(dest interface{}, query string, args ...interface{}) error {
+	stmt, err := stmtCache.Get(context.Background(), query)
+	if err != nil {
+		return err
+	}
+	return stmt.Get(dest, args...)
+}
+
+func dbSelect(dest interface{}, query string, args ...interface{}) error {
+	stmt, err := stmtCache.Get(context.Background(), query)
+	if err != nil {
+		return err
+	}
+	return stmt.Select(dest, args...)
+}
+
+func txExec(tx *sqlx.Tx, query string, args ...any) (sql.Result, error) {
+	stmt, err := stmtCache.Get(context.Background(), query)
+	if err != nil {
+		return nil, err
+	}
+	return tx.Stmtx(stmt).Exec(args...)
+}
+
+func txGet(tx *sqlx.Tx, dest interface{}, query string, args ...interface{}) error {
+	stmt, err := stmtCache.Get(context.Background(), query)
+	if err != nil {
+		return err
+	}
+	return tx.Stmtx(stmt).Get(dest, args...)
+}
+
+func txSelect(tx *sqlx.Tx, dest interface{}, query string, args ...interface{}) error {
+	stmt, err := stmtCache.Get(context.Background(), query)
+	if err != nil {
+		return err
+	}
+	return tx.Stmtx(stmt).Select(dest, args...)
+}
+
 func connectDB(logger echo.Logger) (*sqlx.DB, error) {
 	const (
 		networkTypeEnvKey = "ISUCON13_MYSQL_DIALCONFIG_NET"
