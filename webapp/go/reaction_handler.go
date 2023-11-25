@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"golang.org/x/sync/errgroup"
 	"net/http"
@@ -152,9 +154,22 @@ func postReactionHandler(c echo.Context) error {
 
 func fillReactionResponse(ctx context.Context, tx *sqlx.Tx, reactionModel ReactionModel) (Reaction, error) {
 	userModel := UserModel{}
-	if err := txGetContext(tx, ctx, &userModel, "SELECT * FROM users WHERE id = ?", reactionModel.UserID); err != nil {
+	userModelPointer, err := cacheUser.Get(context.Background(), reactionModel.UserID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Reaction{}, err
+		}
 		return Reaction{}, err
 	}
+	if userModelPointer == nil {
+		return Reaction{}, err
+	}
+	userModel = *userModelPointer
+
+	//userModel := UserModel{}
+	//if err := txGetContext(tx, ctx, &userModel, "SELECT * FROM users WHERE id = ?", reactionModel.UserID); err != nil {
+	//	return Reaction{}, err
+	//}
 	user, err := fillUserResponse(ctx, tx, userModel)
 	if err != nil {
 		return Reaction{}, err

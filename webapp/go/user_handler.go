@@ -183,13 +183,17 @@ func getMeHandler(c echo.Context) error {
 	defer tx.Rollback()
 
 	userModel := UserModel{}
-	err = txGetContext(tx, ctx, &userModel, "SELECT * FROM users WHERE id = ?", userID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return echo.NewHTTPError(http.StatusNotFound, "not found user that has the userid in session")
-	}
+	userModelPointer, err := cacheUser.Get(context.Background(), userID)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return echo.NewHTTPError(http.StatusNotFound, "not found user that has the userid in session")
+		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user: "+err.Error())
 	}
+	if userModelPointer == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "not found user that has the userid in session")
+	}
+	userModel = *userModelPointer
 
 	user, err := fillUserResponse(ctx, tx, userModel)
 	if err != nil {

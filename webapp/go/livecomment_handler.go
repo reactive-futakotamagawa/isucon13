@@ -438,9 +438,18 @@ func moderateHandler(c echo.Context) error {
 
 func fillLivecommentResponse(ctx context.Context, tx *sqlx.Tx, livecommentModel LivecommentModel) (Livecomment, error) {
 	commentOwnerModel := UserModel{}
-	if err := txGetContext(tx, ctx, &commentOwnerModel, "SELECT * FROM users WHERE id = ?", livecommentModel.UserID); err != nil {
+	//if err := txGetContext(tx, ctx, &commentOwnerModel, "SELECT * FROM users WHERE id = ?", livecommentModel.UserID); err != nil {
+	//	return Livecomment{}, err
+	//}
+	userModelPointer, err := cacheUser.Get(context.Background(), livecommentModel.UserID)
+	if err != nil {
 		return Livecomment{}, err
 	}
+	if userModelPointer == nil {
+		return Livecomment{}, err
+	}
+	commentOwnerModel = *userModelPointer
+
 	commentOwner, err := fillUserResponse(ctx, tx, commentOwnerModel)
 	if err != nil {
 		return Livecomment{}, err
@@ -468,10 +477,21 @@ func fillLivecommentResponse(ctx context.Context, tx *sqlx.Tx, livecommentModel 
 }
 
 func fillLivecommentReportResponse(ctx context.Context, tx *sqlx.Tx, reportModel LivecommentReportModel) (LivecommentReport, error) {
+	//reporterModel := UserModel{}
+	//if err := txGetContext(tx, ctx, &reporterModel, "SELECT * FROM users WHERE id = ?", reportModel.UserID); err != nil {
+	//	return LivecommentReport{}, err
+	//}
+
 	reporterModel := UserModel{}
-	if err := txGetContext(tx, ctx, &reporterModel, "SELECT * FROM users WHERE id = ?", reportModel.UserID); err != nil {
+	userModelPointer, err := cacheUser.Get(context.Background(), reportModel.UserID)
+	if err != nil {
 		return LivecommentReport{}, err
 	}
+	if userModelPointer == nil {
+		return LivecommentReport{}, err
+	}
+	reporterModel = *userModelPointer
+
 	reporter, err := fillUserResponse(ctx, tx, reporterModel)
 	if err != nil {
 		return LivecommentReport{}, err
