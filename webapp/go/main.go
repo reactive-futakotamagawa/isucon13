@@ -5,12 +5,14 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -44,6 +46,91 @@ func init() {
 
 type InitializeResponse struct {
 	Language string `json:"language"`
+}
+
+func stmtClose(stmt *sqlx.Stmt) {
+	_ = stmt.Close()
+}
+
+var stmtCache = sc.NewMust(func(ctx context.Context, query string) (*sqlx.Stmt, error) {
+	stmt, err := dbConn.PreparexContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	runtime.SetFinalizer(stmt, stmtClose)
+	return stmt, nil
+}, 90*time.Second, 90*time.Second)
+
+func dbExec(query string, args ...any) (sql.Result, error) {
+	stmt, err := stmtCache.Get(context.Background(), query)
+	if err != nil {
+		return nil, err
+	}
+	return stmt.Exec(args...)
+}
+
+func dbGet(dest interface{}, query string, args ...interface{}) error {
+	stmt, err := stmtCache.Get(context.Background(), query)
+	if err != nil {
+		return err
+	}
+	return stmt.Get(dest, args...)
+}
+
+func dbSelect(dest interface{}, query string, args ...interface{}) error {
+	stmt, err := stmtCache.Get(context.Background(), query)
+	if err != nil {
+		return err
+	}
+	return stmt.Select(dest, args...)
+}
+
+func txExec(tx *sqlx.Tx, query string, args ...any) (sql.Result, error) {
+	stmt, err := stmtCache.Get(context.Background(), query)
+	if err != nil {
+		return nil, err
+	}
+	return tx.Stmtx(stmt).Exec(args...)
+}
+
+func txGet(tx *sqlx.Tx, dest interface{}, query string, args ...interface{}) error {
+	stmt, err := stmtCache.Get(context.Background(), query)
+	if err != nil {
+		return err
+	}
+	return tx.Stmtx(stmt).Get(dest, args...)
+}
+
+func txSelect(tx *sqlx.Tx, dest interface{}, query string, args ...interface{}) error {
+	stmt, err := stmtCache.Get(context.Background(), query)
+	if err != nil {
+		return err
+	}
+	return tx.Stmtx(stmt).Select(dest, args...)
+}
+
+func txExecContext(tx *sqlx.Tx, ctx context.Context, query string, args ...any) (sql.Result, error) {
+	stmt, err := stmtCache.Get(context.Background(), query)
+	if err != nil {
+		return nil, err
+	}
+	return tx.Stmtx(stmt).ExecContext(ctx, args...)
+}
+
+func txGetContext(tx *sqlx.Tx, ctx context.Context, dest interface{}, query string, args ...interface{}) error {
+	stmt, err := stmtCache.Get(context.Background(), query)
+	if err != nil {
+		return err
+	}
+	return tx.Stmtx(stmt).GetContext(ctx, dest, args...)
+}
+
+func txSelectContext(tx *sqlx.Tx, ctx context.Context, dest interface{}, query string, args ...interface{}) error {
+	stmt, err := stmtCache.Get(context.Background(), query)
+	if err != nil {
+		return err
+	}
+	return tx.Stmtx(stmt).SelectContext(ctx, dest, args...)
 }
 
 func connectDB(logger echo.Logger) (*sqlx.DB, error) {
@@ -129,6 +216,7 @@ func initializeHandler(c echo.Context) error {
 		ALTER TABLE `isudns`.`records` ADD INDEX (name);
 		ALTER TABLE `isupipe`.`themes` ADD INDEX `user_id` (`user_id`);
 		ALTER TABLE `isupipe`.`reservation_slots` ADD INDEX `start_at_end_at` (`start_at`, `end_at`);
+		ALTER TABLE `isupipe`.`reservation_slots` ADD INDEX `end_at` (`end_at`);
 	*/
 	dbConn.Exec("ALTER TABLE `isupipe`.`livestream_tags` ADD INDEX `livestream_id` (`livestream_id`);")
 	dbConn.Exec("ALTER TABLE `isupipe`.`icons` ADD INDEX `user_id` (`user_id`);")
@@ -137,6 +225,7 @@ func initializeHandler(c echo.Context) error {
 	dbConn.Exec("ALTER TABLE `isudns`.`records` ADD INDEX `name` (`name`);")
 	dbConn.Exec("ALTER TABLE `isupipe`.`themes` ADD INDEX `user_id` (`user_id`);")
 	dbConn.Exec("ALTER TABLE `isupipe`.`reservation_slots` ADD INDEX `start_at_end_at` (`start_at`, `end_at`);")
+	dbConn.Exec("ALTER TABLE `isupipe`.`reservation_slots` ADD INDEX `end_at` (`end_at`);")
 
 	c.Request().Header.Add("Content-Type", "application/json;charset=utf-8")
 	return c.JSON(http.StatusOK, InitializeResponse{
@@ -148,7 +237,7 @@ var tagCacheByName *sc.Cache[string, *TagModel]
 
 func getTagByName(_ context.Context, tagName string) (*TagModel, error) {
 	var tag TagModel
-	err := dbConn.Get(&tag, "SELECT * FROM tags WHERE name = ?", tagName)
+	err := dbGet(&tag, "SELECT * FROM tags WHERE name = ?", tagName)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +248,7 @@ var tagCacheByID *sc.Cache[int64, *TagModel]
 
 func getTagByID(_ context.Context, tagID int64) (*TagModel, error) {
 	var tag TagModel
-	err := dbConn.Get(&tag, "SELECT * FROM tags WHERE id = ?", tagID)
+	err := dbGet(&tag, "SELECT * FROM tags WHERE id = ?", tagID)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +259,7 @@ var tagsCache *sc.Cache[struct{}, []*TagModel]
 
 func getTags(_ context.Context, _ struct{}) ([]*TagModel, error) {
 	var tags []*TagModel
-	err := dbConn.Select(&tags, "SELECT * FROM tags")
+	err := dbSelect(&tags, "SELECT * FROM tags")
 	if err != nil {
 		return nil, err
 	}
