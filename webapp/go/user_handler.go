@@ -405,9 +405,17 @@ func verifyUserSession(c echo.Context) error {
 
 func fillUserResponse(ctx context.Context, tx *sqlx.Tx, userModel UserModel) (User, error) {
 	themeModel := ThemeModel{}
-	if err := txGetContext(tx, ctx, &themeModel, "SELECT * FROM themes WHERE user_id = ?", userModel.ID); err != nil {
+	themeModelPointer, err := cacheTheme.Get(ctx, userModel.ID)
+	if err != nil {
 		return User{}, err
 	}
+	if themeModelPointer == nil {
+		return User{}, err
+	}
+	themeModel = *themeModelPointer
+	//if err := txGetContext(tx, ctx, &themeModel, "SELECT * FROM themes WHERE user_id = ?", userModel.ID); err != nil {
+	//	return User{}, err
+	//}
 
 	var image []byte
 	if err := txGetContext(tx, ctx, &image, "SELECT image FROM icons WHERE user_id = ?", userModel.ID); err != nil {

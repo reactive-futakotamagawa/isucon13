@@ -287,6 +287,18 @@ func cacheUserGet(_ context.Context, id int64) (*UserModel, error) {
 	return &user, nil
 }
 
+// SELECT * FROM `themes` WHERE `user_id` = N
+var cacheTheme *sc.Cache[int64, *ThemeModel]
+
+func cacheThemeGet(_ context.Context, id int64) (*ThemeModel, error) {
+	var theme ThemeModel
+	err := dbGet(&theme, "SELECT * FROM themes WHERE user_id = ?", id)
+	if err != nil {
+		return nil, err
+	}
+	return &theme, nil
+}
+
 func main() {
 	go standalone.Integrate(":8888")
 
@@ -294,6 +306,7 @@ func main() {
 	tagCacheByName = sc.NewMust[string, *TagModel](getTagByName, time.Minute, time.Minute, sc.With2QBackend(150))
 	tagsCache = sc.NewMust[struct{}, []*TagModel](getTags, time.Minute, time.Minute, sc.With2QBackend(1))
 	cacheUser = sc.NewMust[int64, *UserModel](cacheUserGet, time.Minute, time.Minute)
+	cacheTheme = sc.NewMust[int64, *ThemeModel](cacheThemeGet, time.Minute, time.Minute)
 
 	e := echo.New()
 	// e.Debug = true
