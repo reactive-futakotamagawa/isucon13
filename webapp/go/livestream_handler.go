@@ -500,20 +500,10 @@ func getLivecommentReportsHandler(c echo.Context) error {
 }
 
 func fillLivestreamResponse(ctx context.Context, tx *sqlx.Tx, livestreamModel LivestreamModel) (Livestream, error) {
-	//ownerModel := UserModel{}
-	//if err := txGetContext(tx, ctx, &ownerModel, "SELECT * FROM users WHERE id = ?", livestreamModel.UserID); err != nil {
-	//	return Livestream{}, err
-	//}
-
 	ownerModel := UserModel{}
-	userModelPointer, err := cacheUser.Get(context.Background(), livestreamModel.UserID)
-	if err != nil {
+	if err := txGetContext(tx, ctx, &ownerModel, "SELECT * FROM users WHERE id = ?", livestreamModel.UserID); err != nil {
 		return Livestream{}, err
 	}
-	if userModelPointer == nil {
-		return Livestream{}, err
-	}
-	ownerModel = *userModelPointer
 
 	owner, err := fillUserResponse(ctx, tx, ownerModel)
 	if err != nil {
