@@ -427,6 +427,19 @@ func fillUserResponse(ctx context.Context, tx *sqlx.Tx, userModel UserModel) (Us
 		if err != nil {
 			return User{}, err
 		}
+
+		user := User{
+			ID:          userModel.ID,
+			Name:        userModel.Name,
+			DisplayName: userModel.DisplayName,
+			Description: userModel.Description,
+			Theme: Theme{
+				ID:       themeModel.ID,
+				DarkMode: themeModel.DarkMode,
+			},
+			IconHash: fmt.Sprintf("%x", sha256.Sum256(image)),
+		}
+		return user, nil
 	}
 
 	// var iconHash [32]byte
