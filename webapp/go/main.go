@@ -200,6 +200,7 @@ func connectDB(logger echo.Logger) (*sqlx.DB, error) {
 }
 
 func initializeHandler(c echo.Context) error {
+	fmt.Println("Initialized")
 	if os.Getenv("SERVER_ID") == "3" {
 		fmt.Println("Cache Purged")
 		cacheUser.Purge()
@@ -207,63 +208,45 @@ func initializeHandler(c echo.Context) error {
 		return c.JSONBlob(http.StatusOK, jsonEncode(InitializeResponse{
 			Language: "golang",
 		}))
+	} else {
+		go func() {
+			_, _ = http.NewRequest(http.MethodPost, "http://192.168.0.12/api/initialize", bytes.NewBuffer([]byte{}))
+		}()
+
+		go func() {
+			if _, err := http.Get("http://p.isucon.ikura-hamu.work/api/group/collect"); err != nil {
+				log.Printf("failed to communicate with pprotein: %v", err)
+			}
+		}()
+		if out, err := exec.Command("../sql/init.sh").CombinedOutput(); err != nil {
+			c.Logger().Warnf("init.sh failed with err=%s", string(out))
+			return echo.NewHTTPError(http.StatusInternalServerError, "failed to initialize: "+err.Error())
+		}
+
+		/*
+			ALTER TABLE `isupipe`.`livestream_tags` ADD INDEX `livestream_id` (`livestream_id`);
+			ALTER TABLE `isupipe`.`icons` ADD INDEX `user_id` (`user_id`);
+			ALTER TABLE `isupipe`.`livecomments` ADD INDEX `livestream_id` (`livestream_id`);
+			ALTER TABLE `isupipe`.`ng_words` ADD INDEX `user_id_livestream_id` (`user_id`, `livestream_id`);
+			ALTER TABLE `isudns`.`records` ADD INDEX (name);
+			ALTER TABLE `isupipe`.`themes` ADD INDEX `user_id` (`user_id`);
+			ALTER TABLE `isupipe`.`reservation_slots` ADD INDEX `start_at_end_at` (`start_at`, `end_at`);
+			ALTER TABLE `isupipe`.`reservation_slots` ADD INDEX `end_at` (`end_at`);
+		*/
+		dbConn.Exec("ALTER TABLE `isupipe`.`livestream_tags` ADD INDEX `livestream_id` (`livestream_id`);")
+		dbConn.Exec("ALTER TABLE `isupipe`.`icons` ADD INDEX `user_id` (`user_id`);")
+		dbConn.Exec("ALTER TABLE `isupipe`.`livecomments` ADD INDEX `livestream_id` (`livestream_id`);")
+		dbConn.Exec("ALTER TABLE `isupipe`.`ng_words` ADD INDEX `user_id_livestream_id` (`user_id`, `livestream_id`);")
+		dbConn.Exec("ALTER TABLE `isudns`.`records` ADD INDEX `name` (`name`);")
+		dbConn.Exec("ALTER TABLE `isupipe`.`themes` ADD INDEX `user_id` (`user_id`);")
+		dbConn.Exec("ALTER TABLE `isupipe`.`reservation_slots` ADD INDEX `start_at_end_at` (`start_at`, `end_at`);")
+		dbConn.Exec("ALTER TABLE `isupipe`.`reservation_slots` ADD INDEX `end_at` (`end_at`);")
+
+		c.Request().Header.Add("Content-Type", "application/json;charset=utf-8")
+		return c.JSONBlob(http.StatusOK, jsonEncode(InitializeResponse{
+			Language: "golang",
+		}))
 	}
-
-	reciver_err := make(chan error)
-	go func() {
-		fmt.Println("Initialize Requested to s3")
-		defer close(reciver_err)
-		req, err := http.NewRequest(http.MethodPost, "http://192.168.0.12/api/initialize", bytes.NewBuffer([]byte{}))
-		if err != nil {
-			reciver_err <- err
-			return
-		}
-		res, err := http.DefaultClient.Do(req)
-		if err != nil {
-			reciver_err <- err
-			return
-		}
-		defer res.Body.Close()
-
-		if res.StatusCode != http.StatusOK {
-			reciver_err <- fmt.Errorf("Initialize returned error: status code %v", res.StatusCode)
-			return
-		}
-	}()
-
-	go func() {
-		if _, err := http.Get("http://p.isucon.ikura-hamu.work/api/group/collect"); err != nil {
-			log.Printf("failed to communicate with pprotein: %v", err)
-		}
-	}()
-	if out, err := exec.Command("../sql/init.sh").CombinedOutput(); err != nil {
-		c.Logger().Warnf("init.sh failed with err=%s", string(out))
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to initialize: "+err.Error())
-	}
-
-	/*
-		ALTER TABLE `isupipe`.`livestream_tags` ADD INDEX `livestream_id` (`livestream_id`);
-		ALTER TABLE `isupipe`.`icons` ADD INDEX `user_id` (`user_id`);
-		ALTER TABLE `isupipe`.`livecomments` ADD INDEX `livestream_id` (`livestream_id`);
-		ALTER TABLE `isupipe`.`ng_words` ADD INDEX `user_id_livestream_id` (`user_id`, `livestream_id`);
-		ALTER TABLE `isudns`.`records` ADD INDEX (name);
-		ALTER TABLE `isupipe`.`themes` ADD INDEX `user_id` (`user_id`);
-		ALTER TABLE `isupipe`.`reservation_slots` ADD INDEX `start_at_end_at` (`start_at`, `end_at`);
-		ALTER TABLE `isupipe`.`reservation_slots` ADD INDEX `end_at` (`end_at`);
-	*/
-	dbConn.Exec("ALTER TABLE `isupipe`.`livestream_tags` ADD INDEX `livestream_id` (`livestream_id`);")
-	dbConn.Exec("ALTER TABLE `isupipe`.`icons` ADD INDEX `user_id` (`user_id`);")
-	dbConn.Exec("ALTER TABLE `isupipe`.`livecomments` ADD INDEX `livestream_id` (`livestream_id`);")
-	dbConn.Exec("ALTER TABLE `isupipe`.`ng_words` ADD INDEX `user_id_livestream_id` (`user_id`, `livestream_id`);")
-	dbConn.Exec("ALTER TABLE `isudns`.`records` ADD INDEX `name` (`name`);")
-	dbConn.Exec("ALTER TABLE `isupipe`.`themes` ADD INDEX `user_id` (`user_id`);")
-	dbConn.Exec("ALTER TABLE `isupipe`.`reservation_slots` ADD INDEX `start_at_end_at` (`start_at`, `end_at`);")
-	dbConn.Exec("ALTER TABLE `isupipe`.`reservation_slots` ADD INDEX `end_at` (`end_at`);")
-
-	c.Request().Header.Add("Content-Type", "application/json;charset=utf-8")
-	return c.JSONBlob(http.StatusOK, jsonEncode(InitializeResponse{
-		Language: "golang",
-	}))
 }
 
 var tagCacheByName *sc.Cache[string, *TagModel]
