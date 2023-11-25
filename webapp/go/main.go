@@ -237,7 +237,7 @@ var tagCacheByName *sc.Cache[string, *TagModel]
 
 func getTagByName(_ context.Context, tagName string) (*TagModel, error) {
 	var tag TagModel
-	err := dbConn.Get(&tag, "SELECT * FROM tags WHERE name = ?", tagName)
+	err := dbGet(&tag, "SELECT * FROM tags WHERE name = ?", tagName)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +248,7 @@ var tagCacheByID *sc.Cache[int64, *TagModel]
 
 func getTagByID(_ context.Context, tagID int64) (*TagModel, error) {
 	var tag TagModel
-	err := dbConn.Get(&tag, "SELECT * FROM tags WHERE id = ?", tagID)
+	err := dbGet(&tag, "SELECT * FROM tags WHERE id = ?", tagID)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +259,7 @@ var tagsCache *sc.Cache[struct{}, []*TagModel]
 
 func getTags(_ context.Context, _ struct{}) ([]*TagModel, error) {
 	var tags []*TagModel
-	err := dbConn.Select(&tags, "SELECT * FROM tags")
+	err := dbSelect(&tags, "SELECT * FROM tags")
 	if err != nil {
 		return nil, err
 	}
