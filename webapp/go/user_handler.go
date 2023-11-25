@@ -108,7 +108,7 @@ func getIconHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get icon hash from cache: "+err.Error())
 	}
 	iconHashRequest := c.Request().Header.Get("If-None-Match")
-	fmt.Printf("icon hash match: %s, %x", iconHashRequest, iconHash)
+	c.Logger().Errorf("iconHash: %s, iconHashRequest: %s", fmt.Sprintf("%x", iconHash), iconHashRequest)
 	if iconHashRequest == fmt.Sprintf("%x", iconHash) {
 		return c.NoContent(http.StatusNotModified)
 	}
