@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -107,7 +108,8 @@ func getIconHandler(c echo.Context) error {
 
 	if user.IconHash != nil && len(*user.IconHash) != 0 {
 		iconHashRequest := c.Request().Header.Get("If-None-Match")
-		if iconHashRequest == fmt.Sprintf("%x", user.IconHash) {
+		if iconHashRequest == *user.IconHash {
+			log.Printf("icon hash matched: %s", iconHashRequest)
 			return c.NoContent(http.StatusNotModified)
 		}
 	}
