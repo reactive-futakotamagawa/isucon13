@@ -378,7 +378,7 @@ func main() {
 	// 課金情報
 	e.GET("/api/payment", GetPaymentResult)
 
-	e.HTTPErrorHandler = errorResponseHandler
+	// e.HTTPErrorHandler = errorResponseHandler
 
 	// DB接続
 	conn, err := connectDB(e.Logger)
@@ -433,16 +433,16 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
-func errorResponseHandler(err error, c echo.Context) {
-	c.Logger().Errorf("error at %s: %+v", c.Path(), err)
-	if he, ok := err.(*echo.HTTPError); ok {
-		if e := c.JSONBlob(he.Code, jsonEncode(&ErrorResponse{Error: err.Error()})); e != nil {
-			c.Logger().Errorf("%+v", e)
-		}
-		return
-	}
+// func errorResponseHandler(err error, c echo.Context) {
+// 	c.Logger().Errorf("error at %s: %+v", c.Path(), err)
+// 	if he, ok := err.(*echo.HTTPError); ok {
+// 		if e := c.JSONBlob(he.Code, jsonEncode(&ErrorResponse{Error: err.Error()})); e != nil {
+// 			c.Logger().Errorf("%+v", e)
+// 		}
+// 		return
+// 	}
 
-	if e := c.JSONBlob(http.StatusInternalServerError, jsonEncode(&ErrorResponse{Error: err.Error()})); e != nil {
-		c.Logger().Errorf("%+v", e)
-	}
-}
+// 	if e := c.JSONBlob(http.StatusInternalServerError, jsonEncode(&ErrorResponse{Error: err.Error()})); e != nil {
+// 		c.Logger().Errorf("%+v", e)
+// 	}
+// }
