@@ -218,6 +218,7 @@ func initializeHandler(c echo.Context) error {
 		ALTER TABLE `isudns`.`records` ADD INDEX (name);
 		ALTER TABLE `isupipe`.`themes` ADD INDEX `user_id` (`user_id`);
 		ALTER TABLE `isupipe`.`reservation_slots` ADD INDEX `start_at_end_at` (`start_at`, `end_at`);
+		ALTER TABLE `isupipe`.`reservation_slots` ADD INDEX `end_at` (`end_at`);
 	*/
 	dbConn.Exec("ALTER TABLE `isupipe`.`livestream_tags` ADD INDEX `livestream_id` (`livestream_id`);")
 	dbConn.Exec("ALTER TABLE `isupipe`.`icons` ADD INDEX `user_id` (`user_id`);")
@@ -226,6 +227,7 @@ func initializeHandler(c echo.Context) error {
 	dbConn.Exec("ALTER TABLE `isudns`.`records` ADD INDEX `name` (`name`);")
 	dbConn.Exec("ALTER TABLE `isupipe`.`themes` ADD INDEX `user_id` (`user_id`);")
 	dbConn.Exec("ALTER TABLE `isupipe`.`reservation_slots` ADD INDEX `start_at_end_at` (`start_at`, `end_at`);")
+	dbConn.Exec("ALTER TABLE `isupipe`.`reservation_slots` ADD INDEX `end_at` (`end_at`);")
 
 	c.Request().Header.Add("Content-Type", "application/json;charset=utf-8")
 	return c.JSON(http.StatusOK, InitializeResponse{
