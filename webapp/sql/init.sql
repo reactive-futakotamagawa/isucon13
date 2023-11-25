@@ -23,9 +23,3 @@ ALTER TABLE `tags` auto_increment = 1;
 ALTER TABLE `livecomments` auto_increment = 1;
 ALTER TABLE `livestreams` auto_increment = 1;
 ALTER TABLE `users` auto_increment = 1;
-
-ALTER TABLE `livestream_tags` ADD INDEX `livestream_id` (`livestream_id`);
-ALTER TABLE `icons` ADD INDEX `user_id` (`user_id`);
-ALTER TABLE records ADD INDEX (name);
-ALTER TABLE `livecomments` ADD INDEX `livestream_id` (`livestream_id`);
-ALTER TABLE `ng_words` ADD INDEX `user_id_livestream_id` (`user_id`, `livestream_id`);
