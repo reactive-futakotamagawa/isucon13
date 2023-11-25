@@ -452,3 +452,41 @@ func fillUserResponse(ctx context.Context, tx *sqlx.Tx, userModel UserModel) (Us
 
 	return user, nil
 }
+
+func fillUserResponsew(ctx context.Context, userModel UserModel) (User, error) {
+	themeModel := ThemeModel{}
+	if err := dbGet(&themeModel, "SELECT * FROM themes WHERE user_id = ?", userModel.ID); err != nil {
+		return User{}, err
+	}
+
+	var image []byte
+	if err := dbGet(&image, "SELECT image FROM icons WHERE user_id = ?", userModel.ID); err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return User{}, err
+		}
+		image, err = os.ReadFile(fallbackImage)
+		if err != nil {
+			return User{}, err
+		}
+	}
+
+	// iconHash := sha256.Sum256(image)
+	iconHash, err := iconHashCache.Get(ctx, userModel.ID)
+	if err != nil {
+		return User{}, err
+	}
+
+	user := User{
+		ID:          userModel.ID,
+		Name:        userModel.Name,
+		DisplayName: userModel.DisplayName,
+		Description: userModel.Description,
+		Theme: Theme{
+			ID:       themeModel.ID,
+			DarkMode: themeModel.DarkMode,
+		},
+		IconHash: fmt.Sprintf("%x", iconHash),
+	}
+
+	return user, nil
+}

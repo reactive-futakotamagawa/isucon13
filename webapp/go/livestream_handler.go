@@ -543,3 +543,59 @@ func fillLivestreamResponse(ctx context.Context, tx *sqlx.Tx, livestreamModel Li
 	}
 	return livestream, nil
 }
+
+func fillLivestreamResponsew(ctx context.Context, livestreamModel LivestreamModel) (Livestream, error) {
+	//ownerModel := UserModel{}
+	//if err := txGetContext(tx, ctx, &ownerModel, "SELECT * FROM users WHERE id = ?", livestreamModel.UserID); err != nil {
+	//	return Livestream{}, err
+	//}
+
+	ownerModel := UserModel{}
+	userModelPointer, err := cacheUser.Get(context.Background(), livestreamModel.UserID)
+	if err != nil {
+		return Livestream{}, err
+	}
+	if userModelPointer == nil {
+		return Livestream{}, err
+	}
+	ownerModel = *userModelPointer
+
+	owner, err := fillUserResponsew(ctx, ownerModel)
+	if err != nil {
+		return Livestream{}, err
+	}
+
+	var livestreamTagModels []*LivestreamTagModel
+	if err := dbSelect(&livestreamTagModels, "SELECT * FROM livestream_tags WHERE livestream_id = ?", livestreamModel.ID); err != nil {
+		return Livestream{}, err
+	}
+
+	tags := make([]Tag, len(livestreamTagModels))
+	for i := range livestreamTagModels {
+		tagModel, err := tagCacheByID.Get(ctx, livestreamTagModels[i].TagID)
+		// if err := txGetContext(tx, ctx, &tagModel, "SELECT * FROM tags WHERE id = ?", livestreamTagModels[i].TagID); err != nil {
+		// 	return Livestream{}, err
+		// }
+		if err != nil {
+			return Livestream{}, err
+		}
+
+		tags[i] = Tag{
+			ID:   tagModel.ID,
+			Name: tagModel.Name,
+		}
+	}
+
+	livestream := Livestream{
+		ID:           livestreamModel.ID,
+		Owner:        owner,
+		Title:        livestreamModel.Title,
+		Tags:         tags,
+		Description:  livestreamModel.Description,
+		PlaylistUrl:  livestreamModel.PlaylistUrl,
+		ThumbnailUrl: livestreamModel.ThumbnailUrl,
+		StartAt:      livestreamModel.StartAt,
+		EndAt:        livestreamModel.EndAt,
+	}
+	return livestream, nil
+}
