@@ -292,7 +292,7 @@ func main() {
 	tagCacheByID = sc.NewMust[int64, *TagModel](getTagByID, time.Minute, time.Minute, sc.With2QBackend(150))
 	tagCacheByName = sc.NewMust[string, *TagModel](getTagByName, time.Minute, time.Minute, sc.With2QBackend(150))
 	tagsCache = sc.NewMust[struct{}, []*TagModel](getTags, time.Minute, time.Minute, sc.With2QBackend(1))
-	iconHashCache = sc.NewMust[int64, [32]byte](getIconHash, time.Second*2, time.Second*2, sc.With2QBackend(150))
+	iconHashCache = sc.NewMust[int64, [32]byte](getIconHash, time.Minute, time.Minute, sc.With2QBackend(150))
 
 	e := echo.New()
 	// e.Debug = true
