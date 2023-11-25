@@ -227,20 +227,12 @@ func searchLivestreamsHandler(c echo.Context) error {
 	}
 
 	livestreams := make([]Livestream, len(livestreamModels))
-	var eg errgroup.Group
 	for i := range livestreamModels {
-		eg.Go(func() error {
-			livestream, err := fillLivestreamResponse(ctx, tx, *livestreamModels[i])
-			if err != nil {
-				return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill livestream: "+err.Error())
-			}
-			livestreams[i] = livestream
-			return nil
-		})
-	}
-	err = eg.Wait()
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill livestream: "+err.Error())
+		livestream, err := fillLivestreamResponse(ctx, tx, *livestreamModels[i])
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill livestream: "+err.Error())
+		}
+		livestreams[i] = livestream
 	}
 
 	if err := tx.Commit(); err != nil {
