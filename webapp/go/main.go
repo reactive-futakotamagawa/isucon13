@@ -21,6 +21,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
+	echolog "github.com/labstack/gommon/log"
 	"github.com/motoki317/sc"
 
 	"github.com/gorilla/sessions"
@@ -295,8 +296,8 @@ func main() {
 	iconHashCache = sc.NewMust[int64, [32]byte](getIconHash, time.Minute, time.Minute, sc.With2QBackend(150))
 
 	e := echo.New()
-	// e.Debug = true
-	// e.Logger.SetLevel(echolog.DEBUG)
+	e.Debug = true
+	e.Logger.SetLevel(echolog.DEBUG)
 	// e.Use(middleware.Logger())
 	cookieStore := sessions.NewCookieStore(secret)
 	cookieStore.Options.Domain = "*.u.isucon.dev"
