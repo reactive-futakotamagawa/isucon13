@@ -96,7 +96,7 @@ func getLivecommentsHandler(c echo.Context) error {
 	livecommentModels := []LivecommentModel{}
 	err = txSelectContext(tx, ctx, &livecommentModels, query, livestreamID)
 	if errors.Is(err, sql.ErrNoRows) {
-		return c.JSON(http.StatusOK, []*Livecomment{})
+		return c.JSONBlob(http.StatusOK, jsonEncode([]*Livecomment{}))
 	}
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get livecomments: "+err.Error())
@@ -116,7 +116,7 @@ func getLivecommentsHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, livecomments)
+	return c.JSONBlob(http.StatusOK, jsonEncode(livecomments))
 }
 
 func getNgwords(c echo.Context) error {
@@ -145,7 +145,7 @@ func getNgwords(c echo.Context) error {
 	var ngWords []*NGWord
 	if err := txSelectContext(tx, ctx, &ngWords, "SELECT * FROM ng_words WHERE user_id = ? AND livestream_id = ? ORDER BY created_at DESC", userID, livestreamID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return c.JSON(http.StatusOK, []*NGWord{})
+			return c.JSONBlob(http.StatusOK, jsonEncode([]*NGWord{}))
 		} else {
 			return echo.NewHTTPError(http.StatusInternalServerError, "failed to get NG words: "+err.Error())
 		}
@@ -155,7 +155,7 @@ func getNgwords(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, ngWords)
+	return c.JSONBlob(http.StatusOK, jsonEncode(ngWords))
 }
 
 func postLivecommentHandler(c echo.Context) error {
@@ -250,7 +250,7 @@ func postLivecommentHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusCreated, livecomment)
+	return c.JSONBlob(http.StatusCreated, jsonEncode(livecomment))
 }
 
 func reportLivecommentHandler(c echo.Context) error {
@@ -324,7 +324,7 @@ func reportLivecommentHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusCreated, report)
+	return c.JSONBlob(http.StatusCreated, jsonEncode(report))
 }
 
 // NGワードを登録
@@ -431,9 +431,9 @@ func moderateHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusCreated, map[string]interface{}{
+	return c.JSONBlob(http.StatusCreated, jsonEncode(map[string]interface{}{
 		"word_id": wordID,
-	})
+	}))
 }
 
 func fillLivecommentResponse(ctx context.Context, tx *sqlx.Tx, livecommentModel LivecommentModel) (Livecomment, error) {

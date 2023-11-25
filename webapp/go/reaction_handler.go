@@ -89,7 +89,7 @@ func getReactionsHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, reactions)
+	return c.JSONBlob(http.StatusOK, jsonEncode(reactions))
 }
 
 func postReactionHandler(c echo.Context) error {
@@ -147,7 +147,7 @@ func postReactionHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusCreated, reaction)
+	return c.JSONBlob(http.StatusCreated, jsonEncode(reaction))
 }
 
 func fillReactionResponse(ctx context.Context, tx *sqlx.Tx, reactionModel ReactionModel) (Reaction, error) {

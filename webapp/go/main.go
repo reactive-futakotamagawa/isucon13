@@ -21,6 +21,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/motoki317/sc"
 
+	"github.com/bytedance/sonic"
 	"github.com/gorilla/sessions"
 	"github.com/kaz/pprotein/integration/standalone"
 	"github.com/labstack/echo-contrib/session"
@@ -228,9 +229,9 @@ func initializeHandler(c echo.Context) error {
 	dbConn.Exec("ALTER TABLE `isupipe`.`reservation_slots` ADD INDEX `end_at` (`end_at`);")
 
 	c.Request().Header.Add("Content-Type", "application/json;charset=utf-8")
-	return c.JSON(http.StatusOK, InitializeResponse{
+	return c.JSONBlob(http.StatusOK, jsonEncode(InitializeResponse{
 		Language: "golang",
-	})
+	}))
 }
 
 var tagCacheByName *sc.Cache[string, *TagModel]
@@ -264,6 +265,15 @@ func getTags(_ context.Context, _ struct{}) ([]*TagModel, error) {
 		return nil, err
 	}
 	return tags, nil
+}
+
+func jsonEncode(res any) []byte {
+	b, err := sonic.Marshal(&res)
+	if err != nil {
+		panic(err)
+	}
+
+	return b
 }
 
 func main() {
@@ -394,13 +404,13 @@ type ErrorResponse struct {
 func errorResponseHandler(err error, c echo.Context) {
 	c.Logger().Errorf("error at %s: %+v", c.Path(), err)
 	if he, ok := err.(*echo.HTTPError); ok {
-		if e := c.JSON(he.Code, &ErrorResponse{Error: err.Error()}); e != nil {
+		if e := c.JSONBlob(he.Code, jsonEncode(&ErrorResponse{Error: err.Error()})); e != nil {
 			c.Logger().Errorf("%+v", e)
 		}
 		return
 	}
 
-	if e := c.JSON(http.StatusInternalServerError, &ErrorResponse{Error: err.Error()}); e != nil {
+	if e := c.JSONBlob(http.StatusInternalServerError, jsonEncode(&ErrorResponse{Error: err.Error()})); e != nil {
 		c.Logger().Errorf("%+v", e)
 	}
 }

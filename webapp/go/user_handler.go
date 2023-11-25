@@ -158,9 +158,9 @@ func postIconHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusCreated, &PostIconResponse{
+	return c.JSONBlob(http.StatusCreated, jsonEncode(&PostIconResponse{
 		ID: iconID,
-	})
+	}))
 }
 
 func getMeHandler(c echo.Context) error {
@@ -200,7 +200,7 @@ func getMeHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, user)
+	return c.JSONBlob(http.StatusOK, jsonEncode(user))
 }
 
 // ユーザ登録API
@@ -269,7 +269,7 @@ func registerHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusCreated, user)
+	return c.JSONBlob(http.StatusCreated, jsonEncode(user))
 }
 
 // ユーザログインAPI
@@ -371,7 +371,7 @@ func getUserHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, user)
+	return c.JSONBlob(http.StatusOK, jsonEncode(user))
 }
 
 func verifyUserSession(c echo.Context) error {

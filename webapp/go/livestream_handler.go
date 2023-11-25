@@ -168,7 +168,7 @@ func reserveLivestreamHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusCreated, livestream)
+	return c.JSONBlob(http.StatusCreated, jsonEncode(livestream))
 }
 
 func searchLivestreamsHandler(c echo.Context) error {
@@ -239,7 +239,7 @@ func searchLivestreamsHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, livestreams)
+	return c.JSONBlob(http.StatusOK, jsonEncode(livestreams))
 }
 
 func getMyLivestreamsHandler(c echo.Context) error {
@@ -276,7 +276,7 @@ func getMyLivestreamsHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, livestreams)
+	return c.JSONBlob(http.StatusOK, jsonEncode(livestreams))
 }
 
 func getUserLivestreamsHandler(c echo.Context) error {
@@ -328,7 +328,7 @@ func getUserLivestreamsHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, livestreams)
+	return c.JSONBlob(http.StatusOK, jsonEncode(livestreams))
 }
 
 // viewerテーブルの廃止
@@ -442,7 +442,7 @@ func getLivestreamHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, livestream)
+	return c.JSONBlob(http.StatusOK, jsonEncode(livestream))
 }
 
 func getLivecommentReportsHandler(c echo.Context) error {
@@ -495,7 +495,7 @@ func getLivecommentReportsHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, reports)
+	return c.JSONBlob(http.StatusOK, jsonEncode(reports))
 }
 
 func fillLivestreamResponse(ctx context.Context, tx *sqlx.Tx, livestreamModel LivestreamModel) (Livestream, error) {
