@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"golang.org/x/sync/errgroup"
 	"net/http"
 	"strconv"
 	"time"
@@ -67,13 +68,21 @@ func getReactionsHandler(c echo.Context) error {
 	}
 
 	reactions := make([]Reaction, len(reactionModels))
+	var eg errgroup.Group
 	for i := range reactionModels {
-		reaction, err := fillReactionResponse(ctx, tx, reactionModels[i])
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill reaction: "+err.Error())
-		}
+		eg.Go(func() error {
+			reaction, err := fillReactionResponse(ctx, tx, reactionModels[i])
+			if err != nil {
+				return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill reaction: "+err.Error())
+			}
 
-		reactions[i] = reaction
+			reactions[i] = reaction
+			return nil
+		})
+	}
+	err = eg.Wait()
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill reaction: "+err.Error())
 	}
 
 	if err := tx.Commit(); err != nil {
