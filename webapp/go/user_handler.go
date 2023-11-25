@@ -249,6 +249,7 @@ func registerHandler(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get last inserted user id: "+err.Error())
 	}
+	cacheTheme.Forget(userID)
 
 	userModel.ID = userID
 
