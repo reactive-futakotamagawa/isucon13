@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"golang.org/x/sync/errgroup"
 	"net/http"
 	"strconv"
 	"time"
@@ -103,13 +104,21 @@ func getLivecommentsHandler(c echo.Context) error {
 	}
 
 	livecomments := make([]Livecomment, len(livecommentModels))
+	var eg errgroup.Group
 	for i := range livecommentModels {
-		livecomment, err := fillLivecommentResponse(ctx, tx, livecommentModels[i])
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, "failed to fil livecomments: "+err.Error())
-		}
+		eg.Go(func() error {
+			livecomment, err := fillLivecommentResponse(ctx, tx, livecommentModels[i])
+			if err != nil {
+				return echo.NewHTTPError(http.StatusInternalServerError, "failed to fil livecomments: "+err.Error())
+			}
 
-		livecomments[i] = livecomment
+			livecomments[i] = livecomment
+			return nil
+		})
+	}
+	err = eg.Wait()
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fil livecomments: "+err.Error())
 	}
 
 	if err := tx.Commit(); err != nil {
