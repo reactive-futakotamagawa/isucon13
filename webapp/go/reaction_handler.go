@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"golang.org/x/sync/errgroup"
 	"net/http"
 	"strconv"
 	"time"
@@ -68,28 +69,19 @@ func getReactionsHandler(c echo.Context) error {
 	}
 
 	reactions := make([]Reaction, len(reactionModels))
-	var eg errgroup.Group
 	for i := range reactionModels {
-		eg.Go(func() error {
-			reaction, err := fillReactionResponse(ctx, tx, reactionModels[i])
-			if err != nil {
-				return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill reaction: "+err.Error())
-			}
-
-			reactions[i] = reaction
-			return nil
-		})
-	}
-	err = eg.Wait()
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill reaction: "+err.Error())
+		reaction, err := fillReactionResponse(ctx, tx, reactionModels[i])
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill reaction: "+err.Error())
+		}
+		reactions[i] = reaction
 	}
 
 	if err := tx.Commit(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, reactions)
+	return c.JSONBlob(http.StatusOK, jsonEncode(reactions))
 }
 
 func postReactionHandler(c echo.Context) error {
@@ -147,14 +139,27 @@ func postReactionHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusCreated, reaction)
+	return c.JSONBlob(http.StatusCreated, jsonEncode(reaction))
 }
 
 func fillReactionResponse(ctx context.Context, tx *sqlx.Tx, reactionModel ReactionModel) (Reaction, error) {
 	userModel := UserModel{}
-	if err := txGetContext(tx, ctx, &userModel, "SELECT * FROM users WHERE id = ?", reactionModel.UserID); err != nil {
+	userModelPointer, err := cacheUser.Get(context.Background(), reactionModel.UserID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Reaction{}, err
+		}
 		return Reaction{}, err
 	}
+	if userModelPointer == nil {
+		return Reaction{}, err
+	}
+	userModel = *userModelPointer
+
+	//userModel := UserModel{}
+	//if err := txGetContext(tx, ctx, &userModel, "SELECT * FROM users WHERE id = ?", reactionModel.UserID); err != nil {
+	//	return Reaction{}, err
+	//}
 	user, err := fillUserResponse(ctx, tx, userModel)
 	if err != nil {
 		return Reaction{}, err

@@ -50,9 +50,9 @@ func getTagHandler(c echo.Context) error {
 			Name: tagModels[i].Name,
 		}
 	}
-	return c.JSON(http.StatusOK, &TagsResponse{
+	return c.JSONBlob(http.StatusOK, jsonEncode(&TagsResponse{
 		Tags: tags,
-	})
+	}))
 }
 
 // 配信者のテーマ取得API
@@ -97,5 +97,5 @@ func getStreamerThemeHandler(c echo.Context) error {
 		DarkMode: themeModel.DarkMode,
 	}
 
-	return c.JSON(http.StatusOK, theme)
+	return c.JSONBlob(http.StatusOK, jsonEncode(theme))
 }

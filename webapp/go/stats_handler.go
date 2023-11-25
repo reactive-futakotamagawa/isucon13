@@ -201,7 +201,7 @@ func getUserStatisticsHandler(c echo.Context) error {
 		TotalTip:          totalTip,
 		FavoriteEmoji:     favoriteEmoji,
 	}
-	return c.JSON(http.StatusOK, stats)
+	return c.JSONBlob(http.StatusOK, jsonEncode(stats))
 }
 
 func getLivestreamStatisticsHandler(c echo.Context) error {
@@ -301,11 +301,11 @@ func getLivestreamStatisticsHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, LivestreamStatistics{
+	return c.JSONBlob(http.StatusOK, jsonEncode(LivestreamStatistics{
 		Rank:           rank,
 		ViewersCount:   viewersCount,
 		MaxTip:         maxTip,
 		TotalReactions: totalReactions,
 		TotalReports:   totalReports,
-	})
+	}))
 }

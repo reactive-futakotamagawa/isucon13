@@ -23,6 +23,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/motoki317/sc"
 
+	"github.com/bytedance/sonic"
 	"github.com/gorilla/sessions"
 	"github.com/kaz/pprotein/integration/standalone"
 	"github.com/labstack/echo-contrib/session"
@@ -230,9 +231,9 @@ func initializeHandler(c echo.Context) error {
 	dbConn.Exec("ALTER TABLE `isupipe`.`reservation_slots` ADD INDEX `end_at` (`end_at`);")
 
 	c.Request().Header.Add("Content-Type", "application/json;charset=utf-8")
-	return c.JSON(http.StatusOK, InitializeResponse{
+	return c.JSONBlob(http.StatusOK, jsonEncode(InitializeResponse{
 		Language: "golang",
-	})
+	}))
 }
 
 var tagCacheByName *sc.Cache[string, *TagModel]
@@ -286,6 +287,26 @@ func getIconHash(_ context.Context, userID int64) ([32]byte, error) {
 	return sha256.Sum256(iconImage), nil
 }
 
+func jsonEncode(res any) []byte {
+	b, err := sonic.Marshal(&res)
+	if err != nil {
+		panic(err)
+	}
+
+	return b
+}
+
+var cacheUser *sc.Cache[int64, *UserModel]
+
+func cacheUserGet(_ context.Context, id int64) (*UserModel, error) {
+	var user UserModel
+	err := dbGet(&user, "SELECT * FROM users WHERE id = ?", id)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 func main() {
 	go standalone.Integrate(":8888")
 
@@ -293,6 +314,7 @@ func main() {
 	tagCacheByName = sc.NewMust[string, *TagModel](getTagByName, time.Minute, time.Minute, sc.With2QBackend(150))
 	tagsCache = sc.NewMust[struct{}, []*TagModel](getTags, time.Minute, time.Minute, sc.With2QBackend(1))
 	iconHashCache = sc.NewMust[int64, [32]byte](getIconHash, time.Minute, time.Minute, sc.With2QBackend(150))
+	cacheUser = sc.NewMust[int64, *UserModel](cacheUserGet, time.Minute, time.Minute)
 
 	e := echo.New()
 	// e.Debug = true
@@ -415,13 +437,13 @@ type ErrorResponse struct {
 func errorResponseHandler(err error, c echo.Context) {
 	c.Logger().Errorf("error at %s: %+v", c.Path(), err)
 	if he, ok := err.(*echo.HTTPError); ok {
-		if e := c.JSON(he.Code, &ErrorResponse{Error: err.Error()}); e != nil {
+		if e := c.JSONBlob(he.Code, jsonEncode(&ErrorResponse{Error: err.Error()})); e != nil {
 			c.Logger().Errorf("%+v", e)
 		}
 		return
 	}
 
-	if e := c.JSON(http.StatusInternalServerError, &ErrorResponse{Error: err.Error()}); e != nil {
+	if e := c.JSONBlob(http.StatusInternalServerError, jsonEncode(&ErrorResponse{Error: err.Error()})); e != nil {
 		c.Logger().Errorf("%+v", e)
 	}
 }

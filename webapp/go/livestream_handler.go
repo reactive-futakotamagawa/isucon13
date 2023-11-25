@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"golang.org/x/sync/errgroup"
 	"net/http"
 	"strconv"
 	"time"
@@ -168,7 +167,7 @@ func reserveLivestreamHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusCreated, livestream)
+	return c.JSONBlob(http.StatusCreated, jsonEncode(livestream))
 }
 
 func searchLivestreamsHandler(c echo.Context) error {
@@ -239,7 +238,7 @@ func searchLivestreamsHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, livestreams)
+	return c.JSONBlob(http.StatusOK, jsonEncode(livestreams))
 }
 
 func getMyLivestreamsHandler(c echo.Context) error {
@@ -276,7 +275,7 @@ func getMyLivestreamsHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, livestreams)
+	return c.JSONBlob(http.StatusOK, jsonEncode(livestreams))
 }
 
 func getUserLivestreamsHandler(c echo.Context) error {
@@ -307,28 +306,19 @@ func getUserLivestreamsHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get livestreams: "+err.Error())
 	}
 	livestreams := make([]Livestream, len(livestreamModels))
-
-	var eg errgroup.Group
 	for i := range livestreamModels {
-		eg.Go(func() error {
-			livestream, err := fillLivestreamResponse(ctx, tx, *livestreamModels[i])
-			if err != nil {
-				return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill livestream: "+err.Error())
-			}
-			livestreams[i] = livestream
-			return nil
-		})
-	}
-	err = eg.Wait()
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill livestream: "+err.Error())
+		livestream, err := fillLivestreamResponse(ctx, tx, *livestreamModels[i])
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill livestream: "+err.Error())
+		}
+		livestreams[i] = livestream
 	}
 
 	if err := tx.Commit(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, livestreams)
+	return c.JSONBlob(http.StatusOK, jsonEncode(livestreams))
 }
 
 // viewerテーブルの廃止
@@ -442,7 +432,7 @@ func getLivestreamHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, livestream)
+	return c.JSONBlob(http.StatusOK, jsonEncode(livestream))
 }
 
 func getLivecommentReportsHandler(c echo.Context) error {
@@ -495,14 +485,25 @@ func getLivecommentReportsHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, reports)
+	return c.JSONBlob(http.StatusOK, jsonEncode(reports))
 }
 
 func fillLivestreamResponse(ctx context.Context, tx *sqlx.Tx, livestreamModel LivestreamModel) (Livestream, error) {
+	//ownerModel := UserModel{}
+	//if err := txGetContext(tx, ctx, &ownerModel, "SELECT * FROM users WHERE id = ?", livestreamModel.UserID); err != nil {
+	//	return Livestream{}, err
+	//}
+
 	ownerModel := UserModel{}
-	if err := txGetContext(tx, ctx, &ownerModel, "SELECT * FROM users WHERE id = ?", livestreamModel.UserID); err != nil {
+	userModelPointer, err := cacheUser.Get(context.Background(), livestreamModel.UserID)
+	if err != nil {
 		return Livestream{}, err
 	}
+	if userModelPointer == nil {
+		return Livestream{}, err
+	}
+	ownerModel = *userModelPointer
+
 	owner, err := fillUserResponse(ctx, tx, ownerModel)
 	if err != nil {
 		return Livestream{}, err
