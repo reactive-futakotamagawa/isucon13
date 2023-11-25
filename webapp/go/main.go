@@ -18,9 +18,9 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 
 	"github.com/gorilla/sessions"
+	"github.com/kaz/pprotein/integration/standalone"
 	"github.com/labstack/echo-contrib/session"
 	echolog "github.com/labstack/gommon/log"
-	"github.com/kaz/pprotein/integration/standalone"
 )
 
 const (
@@ -133,7 +133,7 @@ func initializeHandler(c echo.Context) error {
 	dbConn.Exec("ALTER TABLE `isupipe`.`icons` ADD INDEX `user_id` (`user_id`);")
 	dbConn.Exec("ALTER TABLE `isupipe`.`livecomments` ADD INDEX `livestream_id` (`livestream_id`);")
 	dbConn.Exec("ALTER TABLE `isupipe`.`ng_words` ADD INDEX `user_id_livestream_id` (`user_id`, `livestream_id`);")
-	dbConn.Exec("ALTER TABLE `isudns`.`records` ADD INDEX (NAME);")
+	dbConn.Exec("ALTER TABLE `isudns`.`records` ADD INDEX `name` (`name`);")
 	dbConn.Exec("ALTER TABLE `isupipe`.`themes` ADD INDEX `user_id` (`user_id`);")
 	dbConn.Exec("ALTER TABLE `isupipe`.`reservation_slots` ADD INDEX `start_at_end_at` (`start_at`, `end_at`);")
 
