@@ -98,7 +98,8 @@ func connectDB(logger echo.Logger) (*sqlx.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.SetMaxOpenConns(10)
+	db.SetMaxOpenConns(1024)
+	db.SetMaxIdleConns(-1)
 
 	if err := db.Ping(); err != nil {
 		return nil, err
@@ -117,6 +118,19 @@ func initializeHandler(c echo.Context) error {
 		c.Logger().Warnf("init.sh failed with err=%s", string(out))
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to initialize: "+err.Error())
 	}
+
+	/*
+		ALTER TABLE `isupipe`.`livestream_tags` ADD INDEX `livestream_id` (`livestream_id`);
+		ALTER TABLE `isupipe`.`icons` ADD INDEX `user_id` (`user_id`);
+		ALTER TABLE `isupipe`.`livecomments` ADD INDEX `livestream_id` (`livestream_id`);
+		ALTER TABLE `isupipe`.`ng_words` ADD INDEX `user_id_livestream_id` (`user_id`, `livestream_id`);
+		ALTER TABLE `isudns`.`records` ADD INDEX (name);
+	*/
+	dbConn.Exec("ALTER TABLE `isupipe`.`livestream_tags` ADD INDEX `livestream_id` (`livestream_id`);")
+	dbConn.Exec("ALTER TABLE `isupipe`.`icons` ADD INDEX `user_id` (`user_id`);")
+	dbConn.Exec("ALTER TABLE `isupipe`.`livecomments` ADD INDEX `livestream_id` (`livestream_id`);")
+	dbConn.Exec("ALTER TABLE `isupipe`.`ng_words` ADD INDEX `user_id_livestream_id` (`user_id`, `livestream_id`);")
+	dbConn.Exec("ALTER TABLE `isudns`.`records` ADD INDEX (NAME);")
 
 	c.Request().Header.Add("Content-Type", "application/json;charset=utf-8")
 	return c.JSON(http.StatusOK, InitializeResponse{
@@ -200,6 +214,10 @@ func main() {
 	}
 	defer conn.Close()
 	dbConn = conn
+
+	http.DefaultTransport.(*http.Transport).MaxIdleConns = 0           // infinite
+	http.DefaultTransport.(*http.Transport).MaxIdleConnsPerHost = 1024 // default: 2
+	//http.DefaultTransport.(*http.Transport).ForceAttemptHTTP2 = true   // go1.13以上
 
 	subdomainAddr, ok := os.LookupEnv(powerDNSSubdomainAddressEnvKey)
 	if !ok {
