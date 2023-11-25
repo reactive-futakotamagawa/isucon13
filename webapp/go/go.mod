@@ -13,6 +13,7 @@ require (
 	github.com/labstack/gommon v0.4.1
 	github.com/motoki317/sc v1.7.1
 	golang.org/x/crypto v0.14.0
+	golang.org/x/sync v0.5.0
 )
 
 require (
