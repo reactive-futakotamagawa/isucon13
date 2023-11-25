@@ -252,7 +252,7 @@ func getLivestreamStatisticsHandler(c echo.Context) error {
 	// 	})
 	// }
 	// sort.Sort(ranking)
-	q := "SELECT ls.id, COUNT(r.id) + IFNULL(SUM(lc.tip),0) FROM livestreams AS ls INNER JOIN reactions AS r ON ls.id = r.livestream_id LEFT JOIN livecomments AS lc ON ls.id = lc.livestream_id GROUP BY (ls.id) ORDER BY ls.id ASC"
+	q := "SELECT ls.id, COUNT(r.id) + IFNULL(SUM(lc.tip),0) AS score FROM livestreams AS ls INNER JOIN reactions AS r ON ls.id = r.livestream_id LEFT JOIN livecomments AS lc ON ls.id = lc.livestream_id GROUP BY (ls.id) ORDER BY ls.id ASC"
 	err = tx.SelectContext(ctx, &ranking, q)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get ranking: "+err.Error())
