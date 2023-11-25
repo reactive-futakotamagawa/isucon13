@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -109,7 +108,7 @@ func getIconHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get icon hash from cache: "+err.Error())
 	}
 	iconHashRequest := c.Request().Header.Get("If-None-Match")
-	log.Printf("icon hash match: %s, %x", iconHashRequest, iconHash)
+	fmt.Printf("icon hash match: %s, %x", iconHashRequest, iconHash)
 	if iconHashRequest == fmt.Sprintf("%x", iconHash) {
 		return c.NoContent(http.StatusNotModified)
 	}
