@@ -25,7 +25,6 @@ import (
 
 	"github.com/bytedance/sonic"
 	"github.com/gorilla/sessions"
-	"github.com/kaz/pprotein/integration/standalone"
 	"github.com/labstack/echo-contrib/session"
 )
 
@@ -201,11 +200,11 @@ func connectDB(logger echo.Logger) (*sqlx.DB, error) {
 }
 
 func initializeHandler(c echo.Context) error {
-	go func() {
-		if _, err := http.Get("http://p.isucon.ikura-hamu.work/api/group/collect"); err != nil {
-			log.Printf("failed to communicate with pprotein: %v", err)
-		}
-	}()
+	//go func() {
+	//	if _, err := http.Get("http://p.isucon.ikura-hamu.work/api/group/collect"); err != nil {
+	//		log.Printf("failed to communicate with pprotein: %v", err)
+	//	}
+	//}()
 	if out, err := exec.Command("../sql/init.sh").CombinedOutput(); err != nil {
 		c.Logger().Warnf("init.sh failed with err=%s", string(out))
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to initialize: "+err.Error())
@@ -308,7 +307,7 @@ func cacheUserGet(_ context.Context, id int64) (*UserModel, error) {
 }
 
 func main() {
-	go standalone.Integrate(":8888")
+	//go standalone.Integrate(":8888")
 
 	tagCacheByID = sc.NewMust[int64, *TagModel](getTagByID, time.Minute, time.Minute, sc.With2QBackend(150))
 	tagCacheByName = sc.NewMust[string, *TagModel](getTagByName, time.Minute, time.Minute, sc.With2QBackend(150))
