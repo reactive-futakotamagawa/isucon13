@@ -31,12 +31,12 @@ const (
 var fallbackImage = "../img/NoImage.jpg"
 
 type UserModel struct {
-	ID             int64  `db:"id"`
-	Name           string `db:"name"`
-	DisplayName    string `db:"display_name"`
-	Description    string `db:"description"`
-	HashedPassword string `db:"password"`
-	IconHash       string `db:"icon_hash"`
+	ID             int64   `db:"id"`
+	Name           string  `db:"name"`
+	DisplayName    string  `db:"display_name"`
+	Description    string  `db:"description"`
+	HashedPassword string  `db:"password"`
+	IconHash       *string `db:"icon_hash"`
 }
 
 type User struct {
@@ -105,7 +105,7 @@ func getIconHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user: "+err.Error())
 	}
 
-	if len(user.IconHash) != 0 {
+	if user.IconHash != nil && len(*user.IconHash) != 0 {
 		iconHashRequest := c.Request().Header.Get("If-None-Match")
 		if iconHashRequest == fmt.Sprintf("%x", user.IconHash) {
 			return c.NoContent(http.StatusNotModified)
@@ -430,7 +430,7 @@ func fillUserResponse(ctx context.Context, tx *sqlx.Tx, userModel UserModel) (Us
 	}
 
 	var iconHash [32]byte
-	if len(userModel.IconHash) == 0 {
+	if userModel.IconHash == nil || len(*userModel.IconHash) == 0 {
 		iconHash := sha256.Sum256(image)
 		if _, err := tx.ExecContext(ctx, "UPDATE users SET icon_hash = ? WHERE id = ?", fmt.Sprintf("%x", iconHash), userModel.ID); err != nil {
 			return User{}, err
