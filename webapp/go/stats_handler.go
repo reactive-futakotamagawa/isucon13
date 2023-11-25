@@ -251,7 +251,7 @@ func getLivestreamStatisticsHandler(c echo.Context) error {
 	// 		Score:        score,
 	// 	})
 	// }
-	sort.Sort(ranking)
+	// sort.Sort(ranking)
 	q := "SELECT ls.id, COUNT(r.id)+ IFNULL(SUM(lc.tip),0) as score FROM livestreams AS ls INNER JOIN reactions AS r ON ls.id = r.livestream_id INNER JOIN livecomments AS lc ON ls.id = lc.livestream_id group by (ls.id) ORDER BY score DESC"
 	err = tx.SelectContext(ctx, &ranking, q)
 	if err != nil {
