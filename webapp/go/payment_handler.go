@@ -20,7 +20,7 @@ func GetPaymentResult(c echo.Context) error {
 	defer tx.Rollback()
 
 	var totalTip int64
-	if err := tx.GetContext(ctx, &totalTip, "SELECT IFNULL(SUM(tip), 0) FROM livecomments"); err != nil {
+	if err := txGetContext(tx, ctx, &totalTip, "SELECT IFNULL(SUM(tip), 0) FROM livecomments"); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to count total tip: "+err.Error())
 	}
 
@@ -28,7 +28,7 @@ func GetPaymentResult(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, &PaymentResult{
+	return c.JSONBlob(http.StatusOK, jsonEncode(&PaymentResult{
 		TotalTip: totalTip,
-	})
+	}))
 }

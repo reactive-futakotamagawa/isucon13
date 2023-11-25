@@ -32,7 +32,7 @@ func getTagHandler(c echo.Context) error {
 	defer tx.Rollback()
 
 	var tagModels []*TagModel
-	// if err := tx.SelectContext(ctx, &tagModels, "SELECT * FROM tags"); err != nil {
+	// if err := txSelectContext(tx, ctx, &tagModels, "SELECT * FROM tags"); err != nil {
 	// 	return echo.NewHTTPError(http.StatusInternalServerError, "failed to get tags: "+err.Error())
 	// }
 	if tagModels, err = tagsCache.Get(ctx, struct{}{}); err != nil {
@@ -50,9 +50,9 @@ func getTagHandler(c echo.Context) error {
 			Name: tagModels[i].Name,
 		}
 	}
-	return c.JSON(http.StatusOK, &TagsResponse{
+	return c.JSONBlob(http.StatusOK, jsonEncode(&TagsResponse{
 		Tags: tags,
-	})
+	}))
 }
 
 // 配信者のテーマ取得API
@@ -75,7 +75,7 @@ func getStreamerThemeHandler(c echo.Context) error {
 	defer tx.Rollback()
 
 	userModel := UserModel{}
-	err = tx.GetContext(ctx, &userModel, "SELECT id FROM users WHERE name = ?", username)
+	err = txGetContext(tx, ctx, &userModel, "SELECT id FROM users WHERE name = ?", username)
 	if errors.Is(err, sql.ErrNoRows) {
 		return echo.NewHTTPError(http.StatusNotFound, "not found user that has the given username")
 	}
@@ -84,7 +84,7 @@ func getStreamerThemeHandler(c echo.Context) error {
 	}
 
 	themeModel := ThemeModel{}
-	if err := tx.GetContext(ctx, &themeModel, "SELECT * FROM themes WHERE user_id = ?", userModel.ID); err != nil {
+	if err := txGetContext(tx, ctx, &themeModel, "SELECT * FROM themes WHERE user_id = ?", userModel.ID); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user theme: "+err.Error())
 	}
 
@@ -97,5 +97,5 @@ func getStreamerThemeHandler(c echo.Context) error {
 		DarkMode: themeModel.DarkMode,
 	}
 
-	return c.JSON(http.StatusOK, theme)
+	return c.JSONBlob(http.StatusOK, jsonEncode(theme))
 }
