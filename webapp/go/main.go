@@ -69,6 +69,7 @@ func connectDB(logger echo.Logger) (*sqlx.DB, error) {
 	conf.Passwd = "isucon"
 	conf.DBName = "isupipe"
 	conf.ParseTime = true
+	conf.InterpolateParams = true
 
 	if v, ok := os.LookupEnv(networkTypeEnvKey); ok {
 		conf.Net = v
@@ -128,12 +129,16 @@ func initializeHandler(c echo.Context) error {
 		ALTER TABLE `isupipe`.`livecomments` ADD INDEX `livestream_id` (`livestream_id`);
 		ALTER TABLE `isupipe`.`ng_words` ADD INDEX `user_id_livestream_id` (`user_id`, `livestream_id`);
 		ALTER TABLE `isudns`.`records` ADD INDEX (name);
+		ALTER TABLE `isupipe`.`themes` ADD INDEX `user_id` (`user_id`);
+		ALTER TABLE `isupipe`.`reservation_slots` ADD INDEX `start_at_end_at` (`start_at`, `end_at`);
 	*/
 	dbConn.Exec("ALTER TABLE `isupipe`.`livestream_tags` ADD INDEX `livestream_id` (`livestream_id`);")
 	dbConn.Exec("ALTER TABLE `isupipe`.`icons` ADD INDEX `user_id` (`user_id`);")
 	dbConn.Exec("ALTER TABLE `isupipe`.`livecomments` ADD INDEX `livestream_id` (`livestream_id`);")
 	dbConn.Exec("ALTER TABLE `isupipe`.`ng_words` ADD INDEX `user_id_livestream_id` (`user_id`, `livestream_id`);")
-	dbConn.Exec("ALTER TABLE `isudns`.`records` ADD INDEX (NAME);")
+	dbConn.Exec("ALTER TABLE `isudns`.`records` ADD INDEX `name` (`name`);")
+	dbConn.Exec("ALTER TABLE `isupipe`.`themes` ADD INDEX `user_id` (`user_id`);")
+	dbConn.Exec("ALTER TABLE `isupipe`.`reservation_slots` ADD INDEX `start_at_end_at` (`start_at`, `end_at`);")
 
 	c.Request().Header.Add("Content-Type", "application/json;charset=utf-8")
 	return c.JSON(http.StatusOK, InitializeResponse{
