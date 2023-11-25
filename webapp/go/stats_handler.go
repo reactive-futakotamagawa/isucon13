@@ -44,8 +44,8 @@ type UserStatistics struct {
 }
 
 type UserRankingEntry struct {
-	Username string
-	Score    int64
+	Username string `db:"name"`
+	Score    int64  `db:"score"`
 }
 type UserRanking []UserRankingEntry
 
