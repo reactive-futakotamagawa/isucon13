@@ -85,7 +85,7 @@ log-queries-not-using-indexes
 skip-log-bin
 skip-innodb-doublewrite
 max_allowed_packet = 200M
-max_connections = 5000
+max_connections = 10000
 # ディスクイメージをメモリ上にバッファさせる値をきめる設定値 (別鯖なら搭載メモリの80%くらい)
 innodb_buffer_pool_size = 3000MB
 # InnoDBの更新ログを記録するディスク上のファイルサイズ(innodb_buffer_pool_sizeの4分の1程度)
