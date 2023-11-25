@@ -10,7 +10,6 @@ require (
 	github.com/kaz/pprotein v1.2.3
 	github.com/labstack/echo-contrib v0.15.0
 	github.com/labstack/echo/v4 v4.11.3
-	github.com/labstack/gommon v0.4.1
 	github.com/motoki317/sc v1.7.1
 	golang.org/x/crypto v0.14.0
 	golang.org/x/sync v0.5.0
@@ -37,6 +36,7 @@ require (
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
+	github.com/labstack/gommon v0.4.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
