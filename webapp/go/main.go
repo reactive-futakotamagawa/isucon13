@@ -199,6 +199,9 @@ func connectDB(logger echo.Logger) (*sqlx.DB, error) {
 }
 
 func initializeHandler(c echo.Context) error {
+
+	cacheUser.Purge()
+
 	go func() {
 		if _, err := http.Get("http://p.isucon.ikura-hamu.work/api/group/collect"); err != nil {
 			log.Printf("failed to communicate with pprotein: %v", err)
@@ -274,6 +277,17 @@ func jsonEncode(res any) []byte {
 	}
 
 	return b
+}
+
+var cacheUser = sc.NewMust[int64, *UserModel](cacheUserGet, 300*time.Hour, 300*time.Hour)
+
+func cacheUserGet(_ context.Context, id int64) (*UserModel, error) {
+	var user UserModel
+	err := dbGet(&user, "SELECT * FROM users WHERE id = ?", id)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func main() {

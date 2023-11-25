@@ -268,6 +268,7 @@ func registerHandler(c echo.Context) error {
 	if err := tx.Commit(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
+	cacheUser.Forget(user.ID)
 
 	return c.JSONBlob(http.StatusCreated, jsonEncode(user))
 }
