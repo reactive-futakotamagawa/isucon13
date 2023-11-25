@@ -4,6 +4,7 @@ package main
 // sqlx的な参考: https://jmoiron.github.io/sqlx/
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -11,16 +12,18 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"time"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/motoki317/sc"
 
 	"github.com/gorilla/sessions"
+	"github.com/kaz/pprotein/integration/standalone"
 	"github.com/labstack/echo-contrib/session"
 	echolog "github.com/labstack/gommon/log"
-	"github.com/kaz/pprotein/integration/standalone"
 )
 
 const (
@@ -138,8 +141,45 @@ func initializeHandler(c echo.Context) error {
 	})
 }
 
+var tagCacheByName *sc.Cache[string, *TagModel]
+
+func getTagByName(_ context.Context, tagName string) (*TagModel, error) {
+	var tag TagModel
+	err := dbConn.Get(&tag, "SELECT * FROM tags WHERE name = ?", tagName)
+	if err != nil {
+		return nil, err
+	}
+	return &tag, nil
+}
+
+var tagCacheByID *sc.Cache[int64, *TagModel]
+
+func getTagByID(_ context.Context, tagID int64) (*TagModel, error) {
+	var tag TagModel
+	err := dbConn.Get(&tag, "SELECT * FROM tags WHERE id = ?", tagID)
+	if err != nil {
+		return nil, err
+	}
+	return &tag, nil
+}
+
+var tagsCache *sc.Cache[struct{}, []*TagModel]
+
+func getTags(_ context.Context, _ struct{}) ([]*TagModel, error) {
+	var tags []*TagModel
+	err := dbConn.Select(&tags, "SELECT * FROM tags")
+	if err != nil {
+		return nil, err
+	}
+	return tags, nil
+}
+
 func main() {
 	go standalone.Integrate(":8888")
+
+	tagCacheByID = sc.NewMust[int64, *TagModel](getTagByID, time.Minute, time.Minute, sc.With2QBackend(150))
+	tagCacheByName = sc.NewMust[string, *TagModel](getTagByName, time.Minute, time.Minute, sc.With2QBackend(150))
+	tagsCache = sc.NewMust[struct{}, []*TagModel](getTags, time.Minute, time.Minute, sc.With2QBackend(1))
 
 	e := echo.New()
 	e.Debug = true

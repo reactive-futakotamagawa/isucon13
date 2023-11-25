@@ -187,13 +187,17 @@ func searchLivestreamsHandler(c echo.Context) error {
 		if err := tx.SelectContext(ctx, &tagIDList, "SELECT id FROM tags WHERE name = ?", keyTagName); err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "failed to get tags: "+err.Error())
 		}
-
-		query, params, err := sqlx.In("SELECT * FROM livestream_tags WHERE tag_id IN (?) ORDER BY livestream_id DESC", tagIDList)
+		tag, err := tagCacheByName.Get(ctx, keyTagName)
 		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, "failed to construct IN query: "+err.Error())
+			return echo.NewHTTPError(http.StatusInternalServerError, "failed to get tag: "+err.Error())
 		}
+
+		// query, params, err := sqlx.In("SELECT * FROM livestream_tags WHERE tag_id IN (?) ORDER BY livestream_id DESC", tagIDList)
+		// if err != nil {
+		// 	return echo.NewHTTPError(http.StatusInternalServerError, "failed to construct IN query: "+err.Error())
+		// }
 		var keyTaggedLivestreams []*LivestreamTagModel
-		if err := tx.SelectContext(ctx, &keyTaggedLivestreams, query, params...); err != nil {
+		if err := tx.SelectContext(ctx, &keyTaggedLivestreams, "SELECT * FROM livestream_tags WHERE tag_id = ? ORDER BY livestream_id DESC", tag.ID); err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "failed to get keyTaggedLivestreams: "+err.Error())
 		}
 
@@ -501,8 +505,11 @@ func fillLivestreamResponse(ctx context.Context, tx *sqlx.Tx, livestreamModel Li
 
 	tags := make([]Tag, len(livestreamTagModels))
 	for i := range livestreamTagModels {
-		tagModel := TagModel{}
-		if err := tx.GetContext(ctx, &tagModel, "SELECT * FROM tags WHERE id = ?", livestreamTagModels[i].TagID); err != nil {
+		tagModel, err := tagCacheByID.Get(ctx, livestreamTagModels[i].TagID)
+		// if err := tx.GetContext(ctx, &tagModel, "SELECT * FROM tags WHERE id = ?", livestreamTagModels[i].TagID); err != nil {
+		// 	return Livestream{}, err
+		// }
+		if err != nil {
 			return Livestream{}, err
 		}
 
