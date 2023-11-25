@@ -5,12 +5,14 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -107,6 +109,30 @@ func txSelect(tx *sqlx.Tx, dest interface{}, query string, args ...interface{}) 
 		return err
 	}
 	return tx.Stmtx(stmt).Select(dest, args...)
+}
+
+func txExecContext(tx *sqlx.Tx, ctx context.Context, query string, args ...any) (sql.Result, error) {
+	stmt, err := stmtCache.Get(context.Background(), query)
+	if err != nil {
+		return nil, err
+	}
+	return tx.Stmtx(stmt).ExecContext(ctx, args...)
+}
+
+func txGetContext(tx *sqlx.Tx, ctx context.Context, dest interface{}, query string, args ...interface{}) error {
+	stmt, err := stmtCache.Get(context.Background(), query)
+	if err != nil {
+		return err
+	}
+	return tx.Stmtx(stmt).GetContext(ctx, dest, args...)
+}
+
+func txSelectContext(tx *sqlx.Tx, ctx context.Context, dest interface{}, query string, args ...interface{}) error {
+	stmt, err := stmtCache.Get(context.Background(), query)
+	if err != nil {
+		return err
+	}
+	return tx.Stmtx(stmt).SelectContext(ctx, dest, args...)
 }
 
 func connectDB(logger echo.Logger) (*sqlx.DB, error) {
