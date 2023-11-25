@@ -5,7 +5,9 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -266,12 +268,31 @@ func getTags(_ context.Context, _ struct{}) ([]*TagModel, error) {
 	return tags, nil
 }
 
+var iconHashCache *sc.Cache[int64, [32]byte]
+
+func getIconHash(_ context.Context, userID int64) ([32]byte, error) {
+	var iconImage []byte
+	err := dbConn.Get(&iconImage, "SELECT image FROM icons WHERE user_id = ?", userID)
+	if errors.Is(err, sql.ErrNoRows) {
+		iconImage, err = os.ReadFile(fallbackImage)
+		if err != nil {
+			return [32]byte{}, err
+		}
+	}
+	if err != nil {
+		return [32]byte{}, err
+	}
+
+	return sha256.Sum256(iconImage), nil
+}
+
 func main() {
 	go standalone.Integrate(":8888")
 
 	tagCacheByID = sc.NewMust[int64, *TagModel](getTagByID, time.Minute, time.Minute, sc.With2QBackend(150))
 	tagCacheByName = sc.NewMust[string, *TagModel](getTagByName, time.Minute, time.Minute, sc.With2QBackend(150))
 	tagsCache = sc.NewMust[struct{}, []*TagModel](getTags, time.Minute, time.Minute, sc.With2QBackend(1))
+	iconHashCache = sc.NewMust[int64, [32]byte](getIconHash, time.Second*2, time.Second*2, sc.With2QBackend(150))
 
 	e := echo.New()
 	// e.Debug = true
