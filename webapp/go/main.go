@@ -189,7 +189,7 @@ func connectDB(logger echo.Logger) (*sqlx.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.SetMaxOpenConns(1024)
+	db.SetMaxOpenConns(4096)
 	db.SetMaxIdleConns(-1)
 
 	if err := db.Ping(); err != nil {
@@ -350,7 +350,7 @@ func main() {
 	dbConn = conn
 
 	http.DefaultTransport.(*http.Transport).MaxIdleConns = 0           // infinite
-	http.DefaultTransport.(*http.Transport).MaxIdleConnsPerHost = 1024 // default: 2
+	http.DefaultTransport.(*http.Transport).MaxIdleConnsPerHost = 4096 // default: 2
 	//http.DefaultTransport.(*http.Transport).ForceAttemptHTTP2 = true   // go1.13以上
 
 	subdomainAddr, ok := os.LookupEnv(powerDNSSubdomainAddressEnvKey)
